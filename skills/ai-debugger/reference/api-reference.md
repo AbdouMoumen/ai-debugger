@@ -110,7 +110,8 @@ Monkey-patch any function accessible from `window` to record every call. **Runti
   key: 'api-calls',       // custom key (default: 'intercept:<path>')
   recordArgs: true,        // record call arguments (default: true)
   recordReturn: true,      // record return values (default: true)
-  errorsOnly: false         // only record calls that throw (default: false)
+  errorsOnly: false,        // only record calls that throw (default: false)
+  maxCalls: 500            // max call records to keep (default: 500, oldest evicted)
 })
 ```
 
@@ -182,11 +183,12 @@ Periodically evaluate a JavaScript expression and track changes. Like DevTools w
 // Poll with faster interval, record every tick
 () => __debugAgent.poll('url', "location.pathname + location.hash", {
   intervalMs: 250,
-  onlyChanges: false   // record even when unchanged (default: true = only changes)
+  onlyChanges: false,  // record even when unchanged (default: true = only changes)
+  maxChanges: 500      // max change records to keep (default: 500, oldest evicted)
 })
 ```
 
-**Options**: `{ intervalMs?: number (default 1000), onlyChanges?: boolean (default true) }`
+**Options**: `{ intervalMs?: number (default 1000), onlyChanges?: boolean (default true), maxChanges?: number (default 500) }`
 
 ### stopPoll(key) / getPolls()
 

@@ -22,10 +22,23 @@
     try {
       return JSON.parse(JSON.stringify(value));
     } catch (_) { /* fall through */ }
+    console.warn('[DebugAgent] deepClone: returning original reference for non-serializable value');
     return value;
   }
 
+  function sanitizeObject(obj) {
+    if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+    var cloned = deepClone(obj);
+    if (cloned && typeof cloned === 'object') {
+      delete cloned.__proto__;
+      delete cloned.constructor;
+      delete cloned.prototype;
+    }
+    return cloned;
+  }
+
   function resolvePath(pathStr) {
+    if (!pathStr || typeof pathStr !== 'string') return null;
     var parts = pathStr.split('.');
     var parent = window;
     for (var i = 0; i < parts.length - 1; i++) {
@@ -79,7 +92,7 @@
       existing.history = history;
       existing.lastUpdated = now;
       existing.updateCount += 1;
-      if (opts.metadata) existing.metadata = opts.metadata;
+      if (opts.metadata) existing.metadata = sanitizeObject(opts.metadata);
     } else {
       watches.set(key, {
         key: key,
@@ -88,7 +101,7 @@
         firstWatched: now,
         lastUpdated: now,
         updateCount: 0,
-        metadata: opts.metadata
+        metadata: sanitizeObject(opts.metadata)
       });
     }
 
@@ -135,9 +148,11 @@
     var recordArgs = opts.recordArgs !== false;
     var recordReturn = opts.recordReturn !== false;
     var errorsOnly = opts.errorsOnly === true;
+    var maxCalls = opts.maxCalls || 500;
     var originalFn = resolved.value;
     var calls = [];
     var callIndex = 0;
+    var active = true;
 
     var wrapper = function () {
       var self = this;
@@ -166,8 +181,9 @@
             throw e;
           }).finally(function () {
             record.duration = Math.round((performance.now() - start) * 100) / 100;
-            if (!errorsOnly || record.error) {
+            if (active && (!errorsOnly || record.error)) {
               calls.push(record);
+              if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
               emit('intercept', key, record);
             }
           });
@@ -177,6 +193,7 @@
         record.duration = Math.round((performance.now() - start) * 100) / 100;
         if (!errorsOnly || record.error) {
           calls.push(record);
+          if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
           emit('intercept', key, record);
         }
         return result;
@@ -184,6 +201,7 @@
         record.error = e && e.message ? e.message : String(e);
         record.duration = Math.round((performance.now() - start) * 100) / 100;
         calls.push(record);
+        if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
         emit('intercept', key, record);
         throw e;
       }
@@ -199,7 +217,8 @@
       originalFn: originalFn,
       parent: resolved.parent,
       prop: resolved.prop,
-      calls: calls
+      calls: calls,
+      active: true
     });
 
     emit('intercept', key, { action: 'started', path: path });
@@ -209,6 +228,7 @@
   function restore(path) {
     var record = interceptions.get(path);
     if (!record) return false;
+    record.active = false;
     record.parent[record.prop] = record.originalFn;
     interceptions.delete(path);
     emit('intercept', record.key, { action: 'restored', path: path });
@@ -239,6 +259,7 @@
 
     var intervalMs = opts.intervalMs || 1000;
     var onlyChanges = opts.onlyChanges !== false;
+    var maxChanges = opts.maxChanges || 500;
     var evaluator;
 
     try {
@@ -266,6 +287,7 @@
             changed: changed
           };
           changes.push(record);
+          if (changes.length > maxChanges) changes.splice(0, changes.length - maxChanges);
           emit('poll', key, record);
         }
 
@@ -277,6 +299,7 @@
           changed: false
         };
         changes.push(errRecord);
+        if (changes.length > maxChanges) changes.splice(0, changes.length - maxChanges);
         emit('poll', key, errRecord);
       }
     }
@@ -325,7 +348,7 @@
   // ─── 4. Timeline & Markers ──────────────────────────────────────────
 
   function mark(label, data) {
-    emit('mark', label, data || {});
+    emit('mark', label, sanitizeObject(data) || {});
   }
 
   function getTimeline(opts) {
