@@ -1,0 +1,21 @@
+{
+  "name": "ai-debugger",
+  "description": "Runtime debugging toolkit for web apps — inject state tracking, function interception, expression polling, and timeline instrumentation into any page via browser automation",
+  "version": "1.0.0",
+  "author": {
+    "name": "Bassem Abdelmalek"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/bassemZohworkerdy/ai-debugger",
+  "keywords": [
+    "debugging",
+    "browser",
+    "instrumentation",
+    "state-tracking",
+    "playwright",
+    "runtime",
+    "web"
+  ],
+  "category": "debugging",
+  "skills": "skills/"
+}
