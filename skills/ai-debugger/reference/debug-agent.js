@@ -13,6 +13,7 @@
     return new Date().toISOString();
   }
 
+  var deepCloneWarned = false;
   function deepClone(value) {
     if (value === null || value === undefined) return value;
     if (typeof value !== 'object' && typeof value !== 'function') return value;
@@ -22,18 +23,23 @@
     try {
       return JSON.parse(JSON.stringify(value));
     } catch (_) { /* fall through */ }
-    console.warn('[DebugAgent] deepClone: returning original reference for non-serializable value');
+    if (!deepCloneWarned) {
+      console.warn('[DebugAgent] deepClone: returning original reference for non-serializable value');
+      deepCloneWarned = true;
+    }
     return value;
   }
 
   function sanitizeObject(obj) {
     if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
     var cloned = deepClone(obj);
-    if (cloned && typeof cloned === 'object') {
-      delete cloned.__proto__;
-      delete cloned.constructor;
-      delete cloned.prototype;
+    // If deepClone returned the original reference, shallow-clone to avoid mutating caller's object
+    if (cloned === obj) {
+      cloned = Object.assign({}, obj);
     }
+    delete cloned.__proto__;
+    delete cloned.constructor;
+    delete cloned.prototype;
     return cloned;
   }
 
@@ -148,11 +154,12 @@
     var recordArgs = opts.recordArgs !== false;
     var recordReturn = opts.recordReturn !== false;
     var errorsOnly = opts.errorsOnly === true;
-    var maxCalls = opts.maxCalls || 500;
+    var maxCalls = opts.maxCalls == null ? 500 : Math.trunc(Number(opts.maxCalls));
+    if (!Number.isFinite(maxCalls) || maxCalls < 1) maxCalls = 500;
     var originalFn = resolved.value;
     var calls = [];
     var callIndex = 0;
-    var active = true;
+    var state = { active: true };
 
     var wrapper = function () {
       var self = this;
@@ -181,7 +188,7 @@
             throw e;
           }).finally(function () {
             record.duration = Math.round((performance.now() - start) * 100) / 100;
-            if (active && (!errorsOnly || record.error)) {
+            if (state.active && (!errorsOnly || record.error)) {
               calls.push(record);
               if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
               emit('intercept', key, record);
@@ -218,7 +225,7 @@
       parent: resolved.parent,
       prop: resolved.prop,
       calls: calls,
-      active: true
+      state: state
     });
 
     emit('intercept', key, { action: 'started', path: path });
@@ -228,7 +235,7 @@
   function restore(path) {
     var record = interceptions.get(path);
     if (!record) return false;
-    record.active = false;
+    record.state.active = false;
     record.parent[record.prop] = record.originalFn;
     interceptions.delete(path);
     emit('intercept', record.key, { action: 'restored', path: path });
@@ -259,7 +266,8 @@
 
     var intervalMs = opts.intervalMs || 1000;
     var onlyChanges = opts.onlyChanges !== false;
-    var maxChanges = opts.maxChanges || 500;
+    var maxChanges = opts.maxChanges == null ? 500 : Math.trunc(Number(opts.maxChanges));
+    if (!Number.isFinite(maxChanges) || maxChanges < 1) maxChanges = 500;
     var evaluator;
 
     try {
