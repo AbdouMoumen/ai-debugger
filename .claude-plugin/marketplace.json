@@ -1,0 +1,11 @@
+{
+  "name": "ai-debugger",
+  "owner": { "name": "AbdouMoumen" },
+  "plugins": [
+    {
+      "name": "ai-debugger",
+      "source": ".",
+      "description": "Runtime debugging toolkit for web apps — inject state tracking, function interception, expression polling, and timeline instrumentation into any page via browser automation"
+    }
+  ]
+}
