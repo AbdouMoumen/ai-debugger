@@ -26,8 +26,18 @@ copilot plugin install AbdouMoumen/ai-debugger
 
 ### Claude Code
 
+**Interactive (within a Claude session):**
+
+1. Run `/plugin`
+2. Select **Marketplaces** → **Add marketplace**
+3. Enter `AbdouMoumen/ai-debugger`
+4. Install the plugin from the marketplace
+
+**Command line:**
+
 ```bash
-/plugin install AbdouMoumen/ai-debugger
+claude plugin marketplace add AbdouMoumen/ai-debugger
+claude plugin install ai-debugger@ai-debugger
 ```
 
 ### Any other agent
