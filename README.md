@@ -18,24 +18,22 @@ All of this happens at runtime via browser automation — no code changes requir
 
 ## Install
 
+### GitHub Copilot CLI
+
+Place the plugin in your extensions directory, or clone it locally and reference it:
+
+```bash
+# Clone and use as a local plugin
+git clone https://github.com/AbdouMoumen/ai-debugger.git
+```
+
+Then add it to your Copilot CLI extensions or reference the skill files directly.
+
 ### Claude Code
 
 ```bash
-# From a local directory
-claude mcp add-from-plugin ./path/to/ai-debugger
-
-# Or during development
+# Use as a plugin directory
 claude --plugin-dir ./path/to/ai-debugger
-```
-
-### GitHub Copilot CLI
-
-```bash
-# From a GitHub repo
-copilot plugin install OWNER/ai-debugger
-
-# From a local directory
-copilot plugin install ./path/to/ai-debugger
 ```
 
 ### Any other agent
@@ -43,7 +41,7 @@ copilot plugin install ./path/to/ai-debugger
 Copy the skill files into your agent's instruction directory, or just tell your agent to read the `SKILL.md` file:
 
 ```
-skills/ai-debugger/SKILL.md              # Skill definition
+skills/ai-debugger/SKILL.md                   # Skill definition
 skills/ai-debugger/reference/debug-agent.js   # Injectable script
 skills/ai-debugger/reference/api-reference.md # Full API docs
 ```
