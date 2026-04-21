@@ -16,6 +16,5 @@
     "runtime",
     "web"
   ],
-  "category": "debugging",
-  "skills": "skills/"
+  "skills": "./skills/"
 }
