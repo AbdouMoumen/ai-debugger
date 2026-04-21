@@ -33,13 +33,15 @@
   function sanitizeObject(obj) {
     if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
     var cloned = deepClone(obj);
-    // If deepClone returned the original reference, shallow-clone to avoid mutating caller's object
+    // If deepClone returned the original reference, shallow-clone preserving type
     if (cloned === obj) {
-      cloned = Object.assign({}, obj);
+      cloned = Array.isArray(obj) ? obj.slice() : Object.assign({}, obj);
     }
-    delete cloned.__proto__;
-    delete cloned.constructor;
-    delete cloned.prototype;
+    if (!Array.isArray(cloned)) {
+      delete cloned.__proto__;
+      delete cloned.constructor;
+      delete cloned.prototype;
+    }
     return cloned;
   }
 
@@ -198,7 +200,7 @@
 
         record.returnValue = recordReturn ? deepClone(result) : undefined;
         record.duration = Math.round((performance.now() - start) * 100) / 100;
-        if (!errorsOnly || record.error) {
+        if (state.active && (!errorsOnly || record.error)) {
           calls.push(record);
           if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
           emit('intercept', key, record);
@@ -207,9 +209,11 @@
       } catch (e) {
         record.error = e && e.message ? e.message : String(e);
         record.duration = Math.round((performance.now() - start) * 100) / 100;
-        calls.push(record);
-        if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
-        emit('intercept', key, record);
+        if (state.active) {
+          calls.push(record);
+          if (calls.length > maxCalls) calls.splice(0, calls.length - maxCalls);
+          emit('intercept', key, record);
+        }
         throw e;
       }
     };
