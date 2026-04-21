@@ -20,20 +20,14 @@ All of this happens at runtime via browser automation — no code changes requir
 
 ### GitHub Copilot CLI
 
-Place the plugin in your extensions directory, or clone it locally and reference it:
-
 ```bash
-# Clone and use as a local plugin
-git clone https://github.com/AbdouMoumen/ai-debugger.git
+copilot plugin install AbdouMoumen/ai-debugger
 ```
-
-Then add it to your Copilot CLI extensions or reference the skill files directly.
 
 ### Claude Code
 
 ```bash
-# Use as a plugin directory
-claude --plugin-dir ./path/to/ai-debugger
+/plugin install AbdouMoumen/ai-debugger
 ```
 
 ### Any other agent
