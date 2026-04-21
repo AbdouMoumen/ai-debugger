@@ -3,7 +3,7 @@
   "description": "Runtime debugging toolkit for web apps — inject state tracking, function interception, expression polling, and timeline instrumentation into any page via browser automation",
   "version": "1.0.0",
   "author": {
-    "name": "Bassem Abdelmalek"
+    "name": "Abdelmoumen Bouabdallah"
   },
   "license": "MIT",
   "homepage": "https://github.com/AbdouMoumen/ai-debugger",
