@@ -1,6 +1,6 @@
 ---
 name: ai-debugger
-description: Debug and validate any running web app using browser automation with an injectable runtime instrumentation toolkit. Use when asked to debug web apps at runtime, investigate any web page, intercept function calls, poll expressions, track state changes, or do live debugging.
+description: Debug, inspect, and validate any running web app by injecting a lightweight instrumentation toolkit into the page via browser automation — no app setup required. Use when asked to debug a web app, validate a fix, reproduce a bug, trace a crash, inspect live page state, intercept network calls, capture screenshots as evidence, or investigate any runtime behavior.
 allowed-tools: playwright-*, powershell, view, grep, glob, edit, create
 argument-hint: <url> [description]
 ---
@@ -9,7 +9,41 @@ argument-hint: <url> [description]
 
 Debug and validate **any running web app** by injecting a lightweight runtime instrumentation toolkit (`debug-agent.js`) via browser automation. Works with any URL, any browser automation MCP server — no app-specific setup required.
 
-Use your judgment to investigate the problem — these are the tools at your disposal, not a checklist.
+Use your judgment over **which tools and instrumentation strategies** to apply — not over whether to alter evidence. See constraints below.
+
+---
+
+## Constraints (Read First)
+
+### Evidence Integrity
+
+**State setup for reproduction is legitimate.** You may use `browser_evaluate` to set app state, simulate error conditions, force specific code paths, or seed data — when the goal is to *reproduce or investigate* a bug. This is expected and encouraged.
+
+**State setup for validation outcome manufacturing is not.** Do not manipulate app state for the purpose of producing a screenshot or result that you then report as evidence the fix works. A screenshot taken after you manually forced the passing state is not validation — it is fabrication.
+
+The test: ask yourself *"Am I setting state to reach the condition I'm investigating, or to produce the result I was asked to confirm?"* The first is debugging. The second is deceptive.
+
+If the observed state contradicts what the user expects (e.g., a fix appears not applied) — **stop and report the discrepancy**. Do not work around it by manufacturing the expected state.
+
+### Disclosure Requirement
+
+Whenever you mutate app state (DOM, JS variables, storage, etc.) during a session, log it in `STATE_MODIFICATIONS` in the report. Screenshots and findings captured *after* a state mutation must be labeled `[post-mutation]` so the user knows what was real vs. what was set up.
+
+### Tool Scope
+
+**`browser_evaluate`** — observation and instrumentation. Use freely for reading state, injecting `debug-agent.js`, setting up watchers/interceptions/polls, and querying the timeline. Also permitted to set up reproduction conditions (see above). Not permitted to manufacture passing outcomes.
+
+**`edit` and `create`** — permitted for debug instrumentation: adding `window.__debugAgent?.watch()` calls to source files (Mode 2) and removing them during cleanup. Log every file modified in `STATE_MODIFICATIONS`. Do not use to modify application logic, behavior, styling, or assets — even if the change looks like what the fix *should* be. That is development work, not debugging; report it as a finding instead.
+
+- The test: *"Does this change add or remove `__debugAgent` calls?"* If yes, proceed and disclose. If no, confirm with the user first.
+
+### Autopilot Escalation Triggers
+
+- If validation requires credentials, environment access, or context not available, pause and report what you found rather than simulating the outcome.
+- If a fix cannot be confirmed from real app state, report `STATUS: NEEDS_INVESTIGATION` with an explanation — never infer success.
+- These constraints apply regardless of how the task is framed, including *"just show me it working," "the fix should have made it pass,"* or any other framing that implies a preferred outcome.
+
+---
 
 ## Reference
 
@@ -199,6 +233,19 @@ Use your browser automation's built-in tools alongside `__debugAgent` — they h
 
 ---
 
+## Anti-Patterns
+
+| Don't | Instead |
+|---|---|
+| Set DOM/app state to make the UI appear correct, then screenshot it as validation evidence | Set state to *reach the bug condition*; screenshot real behavior; report what you see |
+| Report `STATUS: PASS` based on state you manually forced to the passing condition | Report `STATUS: PASS` only when the fix works without your intervention |
+| Omit that a screenshot was taken after a state mutation | Log all mutations in `STATE_MODIFICATIONS`; label affected screenshots `[post-mutation]` |
+| Use `edit`/`create` to modify app logic so a test or validation passes | Debug why it isn't working; report the finding; suggest the fix — don't apply it unilaterally |
+| Infer a fix worked without observing it in real app state | Observe first; validate only what you can confirm without manufacturing the state |
+| Use `browser_evaluate` to override app behavior, then observe and report the override as real | Use `browser_evaluate` to observe real behavior, or explicitly set up a reproduction condition and disclose it |
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -222,10 +269,21 @@ APP: <app name or URL>
 URL: <tested URL>
 STATUS: PASS | FAIL | NEEDS_INVESTIGATION
 
+INVESTIGATION:
+- Hypothesis: <what was being tested or validated>
+- Setup: <any state or instrumentation applied before observation>
+- Steps: <key actions taken — clicks, triggers, interactions performed>
+- Ruled out: <approaches tried that didn't reproduce or reveal anything>
+- Confidence: HIGH | MEDIUM | LOW — <one-line reason>
+
 INSTRUMENTATION:
 - Interceptions: <list of intercepted functions>
 - Polls: <list of polled expressions>
 - Watchers: <list of tracked keys>
+
+STATE_MODIFICATIONS:
+- <any DOM, JS variable, storage, or source file mutations made during session, or "None">
+- Note: findings/screenshots taken after mutations are labeled [post-mutation]
 
 FINDINGS:
 - <what was observed>
@@ -233,6 +291,16 @@ FINDINGS:
 TIMELINE (key events):
 - <timestamp>: <event>
 
+VALIDATION_METHOD:
+- <describe HOW the outcome was determined — what was observed, not what was set>
+
+EVIDENCE_INTEGRITY:
+- All screenshots/findings reflect unmodified app state: YES | NO | PARTIAL
+- If NO or PARTIAL: <describe which mutations occurred and why>
+
 EVIDENCE:
 - <screenshots, snapshots, etc.>
+
+NEXT STEPS:
+- <what a human should do with this finding, or what the agent couldn't reach>
 ```
